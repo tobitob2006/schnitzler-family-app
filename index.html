@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Familie Schnitzler - Einfache Cloud-Sync</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --bg-color: #f8fafc;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --paper: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --radius: 16px;
+            --radius-sm: 8px;
+        }
+
+        body.dark-mode {
+            --bg-color: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            --paper: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text);
+            padding-bottom: 100px;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        header { 
+            background: var(--bg-gradient);
+            color: white;
+            padding: 20px;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: var(--paper);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .hidden { display: none !important; }
+
+        h2, h3 {
+            margin-top: 0;
+            color: var(--text);
+        }
+
+        h2 { font-size: 1.75rem; margin-bottom: 8px; }
+        h3 { font-size: 1.25rem; margin-bottom: 16px; }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        input, select, textarea {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            width: 100%;
+            background: var(--bg-color);
+            color: var(--text);
+            font-size: 16px;
+            margin-bottom: 12px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            background: var(--paper);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        button.secondary {
+            background: var(--text-muted);
+            width: auto;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            margin: 5px 5px 5px 0;
+            display: inline-block;
+        }
+
+        button.del-btn {
+            background: var(--danger);
+            width: auto;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .tabs {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--paper);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            z-index: 90;
+            border-top: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.7rem;
+            opacity: 0.7;
+            flex: 1;
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .tab-btn span {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            opacity: 1;
+            font-weight: 700;
+        }
+
+        .tab-btn.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+
+        .success-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%);
+            border-left: 4px solid var(--success);
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+
+        .login-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .user-card {
+            background: var(--paper);
+            border: 2px solid var(--border);
+            padding: 20px;
+            text-align: center;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .user-avatar-img {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            border: 3px solid var(--primary);
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: var(--radius-sm);
+            margin-bottom: 4px;
+        }
+
+        .task-item:hover { background: var(--bg-color); }
+        .task-item.done { opacity: 0.5; text-decoration: line-through; }
+
+        .checkbox {
+            width: 28px;
+            height: 28px;
+            border: 2.5px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .stat-card {
+            background: var(--bg-color);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #file-input {
+            border: 2px dashed var(--border);
+            padding: 30px;
+            text-align: center;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #file-input:hover {
+            border-color: var(--primary);
+            background: var(--bg-color);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>👨‍👩‍👧‍👦 Schnitzler Family App</h1>
+</header>
+
+<div id="view-login" class="container">
+    <div class="card">
+        <h2 style="text-align:center">👋 Wer bist du?</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:20px;">Wähle dein Profil aus</p>
+        <div class="login-grid" id="login-users"></div>
+        <div style="margin-top:30px; text-align:center;">
+            <button class="secondary" onclick="app.checkPinAndSetup()">⚙️ Admin-Einstellungen</button>
+        </div>
+    </div>
+</div>
+
+<div id="view-setup" class="container hidden">
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">⚙️ Administrator</h2>
+            <button class="secondary" style="margin:0;" onclick="app.showLogin()">🚪 Abmelden</button>
+        </div>
+
+        <div style="margin:20px 0; padding-bottom:20px; border-bottom:2px dashed var(--border);">
+            <h3>☁️ Einfache Cloud-Synchronisation</h3>
+            
+            <div class="info-box">
+                <strong>📱 So funktioniert's:</strong><br><br>
+                1. <strong>Speichern:</strong> Klicke auf "Backup herunterladen" → Datei wird gespeichert<br>
+                2. <strong>Teilen:</strong> Lade die Datei in Google Drive/Dropbox hoch und teile den Link<br>
+                3. <strong>Synchronisieren:</strong> Auf anderen Geräten die Datei herunterladen und hier hochladen<br><br>
+                <strong>✨ Vorteil:</strong> Funktioniert überall, keine API-Probleme!
+            </div>
+
+            <button onclick="app.exportData()">📥 Backup herunterladen</button>
+            
+            <div style="margin: 20px 0;">
+                <label style="font-size: 1rem; font-weight: 600;">Backup hochladen (Synchronisieren):</label>
+                <div id="file-input" onclick="document.getElementById('import-file').click()">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">📤</div>
+                    <div style="font-weight: 600;">Klicke hier oder ziehe eine Datei hierher</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        JSON-Backup-Datei auswählen
+                    </div>
+                </div>
+                <input type="file" id="import-file" hidden accept=".json" onchange="app.importData(this)">
+            </div>
+
+            <div class="warning-box">
+                <strong>💡 Tipp für automatische Sync:</strong><br>
+                Nutze Google Drive oder Dropbox:<br>
+                1. Erstelle einen geteilten Ordner<br>
+                2. Speichere Backups dort<br>
+                3. Alle Familienmitglieder können die Datei runterladen/hochladen<br>
+                4. Immer die neueste Datei verwenden!
+            </div>
+        </div>
+
+        <div style="margin:20px 0; padding-bottom:20px; border-bottom:2px dashed var(--border);">
+            <h3>🔑 Sicherheit</h3>
+            <button class="secondary" onclick="app.changePin()">🔑 Admin-PIN ändern</button>
+        </div>
+
+        <div id="setup-kids"></div>
+        <button onclick="app.saveSetup()">💾 Konfiguration speichern</button>
+    </div>
+</div>
+
+<div id="view-child" class="container hidden">
+    <div class="card">
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+            <img id="c-avatar" style="width:60px; height:60px; border-radius:50%; border:3px solid var(--primary);" src="https://cdn-icons-png.flaticon.com/512/847/847969.png">
+            <div style="flex:1;">
+                <h2 id="c-name" style="margin:0;">Kind</h2>
+                <p id="c-free" style="color:var(--text-muted); margin:0; font-size:0.9rem;"></p>
+            </div>
+            <button class="secondary" onclick="app.showLogin()">🚪</button>
+        </div>
+    </div>
+
+    <div id="child-tasks" class="hidden">
+        <div class="card">
+            <h3>✅ Deine Aufgaben heute</h3>
+            <div id="c-task-list"></div>
+            <button id="finish-btn" onclick="app.finishDay()" style="margin-top:15px;">🎉 Tag abschließen</button>
+            <div id="preview-box" class="hidden info-box" style="margin-top:15px;">
+                <h4 style="margin-top:0; color:var(--primary);">📋 Morgen wartet auf dich:</h4>
+                <ul id="preview-list" style="margin:0; padding-left:20px;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="child-finance" class="hidden">
+        <div class="card">
+            <h3>💰 Dein Guthaben</h3>
+            <div class="stat-card" style="margin:20px 0;">
+                <div class="stat-value" id="c-bal">0.00 €</div>
+                <div class="stat-label">Aktuelles Guthaben</div>
+            </div>
+            <div class="info-box">
+                <p id="c-proj" style="margin:0; font-weight:600;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="child-profile" class="hidden">
+        <div class="card">
+            <h3>👤 Profil-Einstellungen</h3>
+            <label>Spitzname</label>
+            <input id="p-nick" placeholder="Dein Spitzname">
+            <label style="margin-top:15px;">Passwort (optional)</label>
+            <input type="password" id="p-pass" placeholder="Neues Passwort">
+            <button onclick="app.saveProfileData()" style="margin-top:15px;">💾 Profil speichern</button>
+        </div>
+    </div>
+
+    <div id="child-msg" class="hidden">
+        <div class="card">
+            <h3>💬 Nachricht an Eltern</h3>
+            <textarea id="msg-text" rows="4" placeholder="Deine Nachricht..."></textarea>
+            <button onclick="app.sendMsg()">📤 Nachricht senden</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="app.nav('tasks',this)"><span>✅</span>Aufgaben</button>
+        <button class="tab-btn" onclick="app.nav('finance',this)"><span>💰</span>Guthaben</button>
+        <button class="tab-btn" onclick="app.nav('profile',this)"><span>👤</span>Profil</button>
+        <button class="tab-btn" onclick="app.nav('msg',this)"><span>💬</span>Nachricht</button>
+    </div>
+</div>
+
+<div id="view-parent" class="container hidden">
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">👨‍👩‍👧‍👦 Eltern-Übersicht</h2>
+            <button class="secondary" style="margin:0;" onclick="app.showLogin()">🚪 Abmelden</button>
+        </div>
+        
+        <h3>📬 Nachrichten von Kindern</h3>
+        <div id="parent-inbox" style="margin-bottom:30px;"></div>
+        
+        <h3 style="margin-top:30px;">👶 Kinder-Status</h3>
+        <div id="parent-grid"></div>
+        
+        <div style="margin-top:30px; padding-top:20px; border-top:2px dashed var(--border);">
+            <button class="secondary" onclick="app.exportData()">📥 Backup herunterladen</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const DAYS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const DEFAULT = {
+    pin: "1234",
+    color: "#4f46e5",
+    darkMode: false,
+    kids: [],
+    msgs: [],
+    lastModified: Date.now()
+};
+
+const app = {
+    data: null,
+    user: null,
+
+    init: function() {
+        const raw = localStorage.getItem("familyData");
+        this.data = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT));
+        if(!this.data.kids) this.data.kids = [];
+        if(!this.data.msgs) this.data.msgs = [];
+        if(!this.data.lastModified) this.data.lastModified = Date.now();
+        
+        this.showLogin();
+    },
+
+    save: function() {
+        this.data.lastModified = Date.now();
+        localStorage.setItem("familyData", JSON.stringify(this.data));
+    },
+
+    exportData: function() {
+        const dataStr = JSON.stringify(this.data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `schnitzler-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Backup wurde heruntergeladen!\n\nTeile diese Datei mit anderen Geräten zur Synchronisation.');
+    },
+
+    importData: function(input) {
+        const file = input.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                
+                if(!imported.kids || !Array.isArray(imported.kids)) {
+                    alert('❌ Ungültige Backup-Datei!');
+                    return;
+                }
+
+                const importTime = imported.lastModified || 0;
+                const currentTime = this.data.lastModified || 0;
+
+                if(importTime > currentTime) {
+                    if(confirm(`📥 Backup importieren?\n\nBackup von: ${new Date(importTime).toLocaleString()}\nAktuell: ${new Date(currentTime).toLocaleString()}\n\nDas Backup ist neuer. Übernehmen?`)) {
+                        this.data = imported;
+                        this.save();
+                        alert('✅ Backup erfolgreich importiert!');
+                        location.reload();
+                    }
+                } else {
+                    if(confirm(`⚠️ Das Backup ist älter als deine aktuellen Daten.\n\nBackup: ${new Date(importTime).toLocaleString()}\nAktuell: ${new Date(currentTime).toLocaleString()}\n\nTrotzdem übernehmen?`)) {
+                        this.data = imported;
+                        this.save();
+                        alert('✅ Backup importiert!');
+                        location.reload();
+                    }
+                }
+            } catch(error) {
+                alert('❌ Fehler beim Importieren:\n' + error.message);
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    },
+
+    hideAll: function() {
+        document.querySelectorAll('.container').forEach(v=>v.classList.add('hidden'));
+    },
+
+    showLogin: function() {
+        this.hideAll();
+        document.getElementById('view-login').classList.remove('hidden');
+        const grid = document.getElementById('login-users');
+        grid.innerHTML = "";
+        
+        this.data.kids.forEach((k,i) => {
+            if(!k.name) return;
+            const av = k.avatar || "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+            grid.innerHTML += `<div class="user-card" onclick="app.tryLogin(${i},false)">
+                <img class="user-avatar-img" src="${av}"><br><b>${k.nick||k.name}</b>
+            </div>`;
+        });
+        
+        grid.innerHTML += `<div class="user-card" onclick="app.tryLogin(-1,true)">
+            <img class="user-avatar-img" src="https://cdn-icons-png.flaticon.com/512/747/747376.png"><br><b>Eltern</b>
+        </div>`;
+    },
+
+    tryLogin: function(idx, isParent) {
+        const k = this.data.kids[idx];
+        if(!isParent && k && k.pass) {
+            const p = prompt("Passwort:");
+            if(p !== k.pass) { alert("Falsches Passwort!"); return; }
+        }
+        if(isParent) {
+            const p = prompt("Eltern-PIN:");
+            if(p !== this.data.pin) { alert("Falsche PIN!"); return; }
+            this.renderParent();
+        } else {
+            this.user = idx;
+            this.renderChild(idx);
+        }
+    },
+
+    checkPinAndSetup: function() {
+        const p = prompt("Admin-PIN:");
+        if(p !== this.data.pin) { alert("Falsche PIN!"); return; }
+        this.renderSetup();
+    },
+
+    renderSetup: function() {
+        this.hideAll();
+        document.getElementById('view-setup').classList.remove('hidden');
+        
+        const cnt = document.getElementById('setup-kids');
+        cnt.innerHTML = "";
+        
+        for(let i=0; i<4; i++) {
+            if(!this.data.kids[i]) {
+                this.data.kids[i] = {
+                    name:"", age:"", allowance:0, balance:0, avatar:"", pass:"", nick:"",
+                    tasksToday:[], tasksTomorrow:[], lastFinished:"",
+                    schedule: {}
+                };
+                DAYS.forEach(d => this.data.kids[i].schedule[d] = {sStart:"08:00",sEnd:"16:00"});
+            }
+            const k = this.data.kids[i];
+            
+            cnt.innerHTML += `
+            <div class="card" style="margin-bottom:20px;">
+                <h3>👶 Kind ${i+1}</h3>
+                <label>Name</label>
+                <input id="n-${i}" value="${k.name||''}" placeholder="Name des Kindes">
+                <label>Alter</label>
+                <input id="a-${i}" value="${k.age||''}" placeholder="z.B. 8">
+                <label>Taschengeld pro Monat (€)</label>
+                <input type="number" step="0.01" id="m-${i}" value="${k.allowance||0}">
+            </div>`;
+        }
+    },
+
+    saveSetup: function() {
+        this.data.kids.forEach((k,i)=>{
+            k.name = document.getElementById(`n-${i}`).value;
+            k.age = document.getElementById(`a-${i}`).value;
+            k.allowance = parseFloat(document.getElementById(`m-${i}`).value)||0;
+        });
+        this.save();
+        alert("✅ Konfiguration gespeichert!");
+        this.showLogin();
+    },
+
+    changePin: function() {
+        const p = prompt("Neuer Admin-PIN:");
+        if(p) {
+            this.data.pin = p;
+            this.save();
+            alert("✅ PIN geändert!");
+        }
+    },
+
+    renderChild: function(idx) {
+        this.hideAll();
+        document.getElementById('view-child').classList.remove('hidden');
+        this.nav('tasks', document.querySelectorAll('.tab-btn')[0]);
+        
+        const k = this.data.kids[idx];
+        document.getElementById('c-name').innerText = k.nick || k.name || `Kind ${idx+1}`;
+        document.getElementById('c-avatar').src = k.avatar || "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+        document.getElementById('c-free').innerText = `💰 Guthaben: ${k.balance.toFixed(2)} €`;
+
+        const list = document.getElementById('c-task-list');
+        list.innerHTML = "";
+        
+        if(!k.tasksToday.length) {
+            this.generateTasks(k, 'tasksToday');
+            this.save();
+        }
+        
+        k.tasksToday.forEach(t => {
+            list.innerHTML += `<div class="task-item ${t.done?'done':''}" onclick="app.childToggle(${t.id})">
+                <div class="checkbox ${t.done?'checked':''}">${t.done?'✓':''}</div><span>${t.text}</span>
+            </div>`;
+        });
+        
+        const isDone = k.lastFinished === new Date().toDateString();
+        document.getElementById('finish-btn').style.display = isDone ? 'none' : 'block';
+        
+        if(isDone) {
+            document.getElementById('preview-box').classList.remove('hidden');
+            if(!k.tasksTomorrow.length) { this.generateTasks(k, 'tasksTomorrow'); this.save(); }
+            document.getElementById('preview-list').innerHTML = k.tasksTomorrow.map(t=>`<li>${t.text}</li>`).join('');
+        } else {
+            document.getElementById('preview-box').classList.add('hidden');
+        }
+
+        document.getElementById('c-bal').innerText = k.balance.toFixed(2)+" €";
+        document.getElementById('c-proj').innerText = "📊 Wöchentlich: " + ((k.allowance/30)*7).toFixed(2) + " €";
+        document.getElementById('p-nick').value = k.nick || k.name;
+    },
+
+    nav: function(section, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['tasks','finance','profile','msg'].forEach(s => {
+            document.getElementById('child-'+s).classList.add('hidden');
+        });
+        document.getElementById('child-'+section).classList.remove('hidden');
+    },
+
+    generateTasks: function(k, field) {
+        const pool = [
+            "Zimmer aufräumen", "Bett machen", "Hausaufgaben", "Tisch decken",
+            "Geschirr abräumen", "Müll rausbringen", "10 Minuten lesen"
+        ];
+        const n = 4;
+        const sel = pool.sort(()=>Math.random()-0.5).slice(0,n);
+        k[field] = sel.map((t,i)=>({id:Date.now()+i, text:t, done:false}));
+    },
+
+    childToggle: function(tid) {
+        const k = this.data.kids[this.user];
+        if(k.lastFinished === new Date().toDateString()) return;
+        const t = k.tasksToday.find(x => x.id === tid);
+        if(t) { t.done = !t.done; this.save(); this.renderChild(this.user); }
+    },
+
+    finishDay: function() {
+        if(!confirm("🎉 Tag abschließen?")) return;
+        const k = this.data.kids[this.user];
+        const done = k.tasksToday.filter(t=>t.done).length;
+        const total = k.tasksToday.length || 1;
+        const earn = (k.allowance/30)*(done/total);
+        k.balance += earn;
+        k.lastFinished = new Date().toDateString();
+        this.save();
+        alert(`🎊 Super! Du hast ${earn.toFixed(2)}€ verdient!`);
+        this.renderChild(this.user);
+    },
+
+    saveProfileData: function() {
+        const k = this.data.kids[this.user];
+        k.nick = document.getElementById('p-nick').value;
+        if(document.getElementById('p-pass').value) {
+            k.pass = document.getElementById('p-pass').value;
+        }
+        this.save();
+        alert("✅ Profil gespeichert!");
+    },
+
+    sendMsg: function() {
+        const t = document.getElementById('msg-text').value;
+        if(t) {
+            const k = this.data.kids[this.user];
+            this.data.msgs.push({
+                from: k.nick || k.name,
+                text: t,
+                date: new Date().toLocaleString()
+            });
+            this.save();
+            document.getElementById('msg-text').value = "";
+            alert("✅ Nachricht gesendet!");
+        }
+    },
+
+    renderParent: function() {
+        this.hideAll();
+        document.getElementById('view-parent').classList.remove('hidden');
+        
+        const inbox = document.getElementById('parent-inbox');
+        inbox.innerHTML = this.data.msgs.length ? "" : "<div class='info-box'>Keine Nachrichten</div>";
+        this.data.msgs.forEach((m,i)=> {
+            inbox.innerHTML += `<div class="warning-box">
+                <strong>${m.from}:</strong> ${m.text}
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">${m.date}</div>
+                <button class="del-btn" onclick="app.delMsg(${i})" style="margin-top:8px;">🗑️</button>
+            </div>`;
+        });
+
+        const grid = document.getElementById('parent-grid');
+        grid.innerHTML = "";
+        this.data.kids.forEach((k,i)=>{
+            if(!k.name) return;
+            let tasks = k.tasksToday.map(t=>
+                `<div style="padding:8px; margin:4px 0; background:var(--bg-color); border-radius:8px;">
+                    ${t.done?'✅':'⬜'} ${t.text}
+                </div>`
+            ).join('');
+            
+            grid.innerHTML += `<div class="card">
+                <h3>${k.name}</h3>
+                <div class="stat-card" style="margin:15px 0;">
+                    <div class="stat-value">${k.balance.toFixed(2)}€</div>
+                    <div class="stat-label">Guthaben</div>
+                </div>
+                <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border);">
+                    <h4 style="margin-bottom:10px; font-size:0.95rem;">Aufgaben</h4>
+                    ${tasks || '<div class="info-box">Keine Aufgaben</div>'}
+                </div>
+            </div>`;
+        });
+    },
+
+    delMsg: function(i) {
+        this.data.msgs.splice(i,1);
+        this.save();
+        this.renderParent();
+    }
+};
+
+window.onload = () => app.init();
+</script>
+</body>
+</html>
